@@ -3,9 +3,10 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, Loader2, Mail } from "lucide-react";
+import { Check, X, Loader2, Mail, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import ReactMarkdown from "react-markdown";
 
 interface Employee {
   id: string;
@@ -88,104 +89,125 @@ const ReviewPosting = () => {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-12">
-        <div className="grid gap-8 lg:grid-cols-2">
-          {/* Generated Posting */}
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle>📄 Generated Job Posting</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="prose prose-sm max-w-none">
-                <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground">
-                  {generatedPosting.natural_posting}
-                </pre>
-              </div>
+        {/* Generated Posting - Full Width */}
+        <Card className="shadow-lg mb-8">
+          <CardHeader>
+            <CardTitle className="text-2xl">📄 Generated Job Posting</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="prose prose-slate max-w-none dark:prose-invert">
+              <ReactMarkdown
+                components={{
+                  h1: ({ children }) => <h1 className="text-3xl font-bold mb-4 text-foreground">{children}</h1>,
+                  h2: ({ children }) => <h2 className="text-2xl font-semibold mb-3 mt-6 text-foreground">{children}</h2>,
+                  h3: ({ children }) => <h3 className="text-xl font-semibold mb-2 mt-4 text-foreground">{children}</h3>,
+                  p: ({ children }) => <p className="mb-4 text-foreground leading-relaxed">{children}</p>,
+                  ul: ({ children }) => <ul className="list-disc ml-6 mb-4 space-y-2 text-foreground">{children}</ul>,
+                  ol: ({ children }) => <ol className="list-decimal ml-6 mb-4 space-y-2 text-foreground">{children}</ol>,
+                  li: ({ children }) => <li className="text-foreground">{children}</li>,
+                  strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+                  em: ({ children }) => <em className="italic text-foreground">{children}</em>,
+                }}
+              >
+                {generatedPosting.natural_posting}
+              </ReactMarkdown>
+            </div>
 
-              <div className="flex gap-4 mt-8">
-                <Button
-                  onClick={handleApprove}
-                  disabled={isApproving}
-                  className="flex-1 bg-success hover:bg-success/90"
-                >
-                  {isApproving ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Approving...
-                    </>
-                  ) : (
-                    <>
-                      <Check className="mr-2 h-4 w-4" />
-                      Approve
-                    </>
-                  )}
-                </Button>
+            <div className="flex gap-4 mt-8 pt-6 border-t">
+              <Button
+                onClick={handleApprove}
+                disabled={isApproving}
+                className="flex-1 bg-success hover:bg-success/90"
+              >
+                {isApproving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Approving...
+                  </>
+                ) : (
+                  <>
+                    <Check className="mr-2 h-4 w-4" />
+                    Approve & Post
+                  </>
+                )}
+              </Button>
 
-                <Button
-                  onClick={handleDisapprove}
-                  variant="destructive"
-                  className="flex-1"
-                >
-                  <X className="mr-2 h-4 w-4" />
-                  Disapprove
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Structured Data */}
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle>📊 Structured Data</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <pre className="bg-muted p-4 rounded-lg overflow-auto max-h-[400px] text-xs">
-                {JSON.stringify(JSON.parse(generatedPosting.structured_data_string), null, 2)}
-              </pre>
-            </CardContent>
-          </Card>
-        </div>
+              <Button
+                onClick={handleDisapprove}
+                variant="destructive"
+                className="flex-1"
+              >
+                <X className="mr-2 h-4 w-4" />
+                Reject & Revise
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Similar Employees Section */}
         {similarEmployees.length > 0 && (
-          <Card className="shadow-lg mt-8">
-            <CardHeader>
-              <CardTitle>👥 In-House Recruitment Recommendations</CardTitle>
-              <p className="text-sm text-muted-foreground mt-2">
-                Top employees similar to this role with promotion probability
-              </p>
+          <Card className="shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-primary/5 to-secondary/5 border-b">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <TrendingUp className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-2xl">In-House Recruitment Recommendations</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Top talent matches from your existing workforce
+                  </p>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <CardContent className="pt-6">
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {similarEmployees.map((employee) => (
-                  <Card key={employee.id} className="border-2">
+                  <Card key={employee.id} className="border-2 hover:border-primary/50 transition-all hover:shadow-md">
                     <CardContent className="pt-6">
-                      <h3 className="font-semibold text-lg mb-2">{employee.name}</h3>
-                      <p className="text-sm text-muted-foreground mb-1">{employee.current_role}</p>
-                      <p className="text-sm text-muted-foreground mb-4">{employee.department}</p>
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <h3 className="font-bold text-lg mb-1">{employee.name}</h3>
+                          <p className="text-sm font-medium text-primary">{employee.current_role}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{employee.department}</p>
+                        </div>
+                      </div>
                       
-                      <div className="space-y-2 mb-4">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs text-muted-foreground">Similarity</span>
-                          <Badge variant="secondary">
+                      <div className="space-y-3 mb-4 p-3 bg-muted/30 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-muted-foreground">Role Match Score</span>
+                          <Badge variant="secondary" className="font-semibold">
                             {(employee.similarity_score * 100).toFixed(0)}%
                           </Badge>
                         </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs text-muted-foreground">Promotion Probability</span>
+                        <div className="w-full bg-muted rounded-full h-1.5">
+                          <div 
+                            className="bg-primary h-1.5 rounded-full transition-all" 
+                            style={{ width: `${employee.similarity_score * 100}%` }}
+                          />
+                        </div>
+                        
+                        <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                          <span className="text-xs font-medium text-muted-foreground">Promotion Readiness</span>
                           <Badge 
                             variant={employee.promotion_probability > 0.7 ? "default" : "outline"}
-                            className={employee.promotion_probability > 0.7 ? "bg-success" : ""}
+                            className={employee.promotion_probability > 0.7 ? "bg-success font-semibold" : "font-semibold"}
                           >
                             {(employee.promotion_probability * 100).toFixed(0)}%
                           </Badge>
+                        </div>
+                        <div className="w-full bg-muted rounded-full h-1.5">
+                          <div 
+                            className="bg-success h-1.5 rounded-full transition-all" 
+                            style={{ width: `${employee.promotion_probability * 100}%` }}
+                          />
                         </div>
                       </div>
 
                       <Button 
                         onClick={() => handleContactEmployee(employee)}
-                        variant="outline"
+                        className="w-full bg-primary hover:bg-primary/90"
                         size="sm"
-                        className="w-full"
                       >
                         <Mail className="mr-2 h-4 w-4" />
                         Contact Employee

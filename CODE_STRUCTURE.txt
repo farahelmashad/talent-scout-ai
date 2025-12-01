@@ -1,0 +1,264 @@
+==============================================
+JOB POSTING MANAGEMENT SYSTEM - CODE STRUCTURE
+==============================================
+
+📁 PROJECT OVERVIEW
+------------------
+This is an AI-powered job posting management system with in-house recruitment recommendations.
+Built with React, TypeScript, Tailwind CSS, and Lovable Cloud (Supabase backend).
+
+==============================================
+🎨 FRONTEND STRUCTURE
+==============================================
+
+📄 PAGES (src/pages/)
+---------------------
+
+1. Index.tsx
+   - Landing page with navigation to Create Posting and View Postings
+   - Location: src/pages/Index.tsx
+
+2. CreatePosting.tsx
+   - HR input form for job details
+   - Fields: Job Title, Career Level, Location, Department, Key Skills (optional)
+   - Calls edge function to generate posting
+   - Location: src/pages/CreatePosting.tsx
+   
+   Key Functions:
+   - handleSubmit() - Collects form data and calls generate-job-posting edge function
+   - API Call: supabase.functions.invoke("generate-job-posting", { body: formData })
+
+3. ReviewPosting.tsx
+   - Displays AI-generated job posting with markdown rendering
+   - Approve/Reject actions
+   - Shows in-house recruitment recommendations
+   - Location: src/pages/ReviewPosting.tsx
+   
+   Key Functions:
+   - handleApprove() - Saves posting to database and gets similar employees
+   - handleDisapprove() - Redirects back to create page
+   - handleContactEmployee() - Opens mailto link
+   - API Call: supabase.functions.invoke("approve-posting", { body: postingData })
+
+4. Postings.tsx
+   - Lists all approved job postings
+   - Displays posting details in cards
+   - Location: src/pages/Postings.tsx
+   
+   Key Functions:
+   - Fetches data: supabase.from('job_postings').select('*').order('created_at', { ascending: false })
+
+5. NotFound.tsx
+   - 404 error page
+   - Location: src/pages/NotFound.tsx
+
+🎨 COMPONENTS
+------------
+- UI Components: src/components/ui/ (shadcn components)
+- NavLink.tsx: Navigation component used in header
+- Location: src/components/
+
+🎨 DESIGN SYSTEM
+---------------
+- Global Styles: src/index.css
+  * CSS variables for theming (--primary, --secondary, --background, etc.)
+  * All colors defined in HSL format
+  
+- Tailwind Config: tailwind.config.ts
+  * Extends theme with custom colors mapping to CSS variables
+  * Animation configurations
+
+==============================================
+🔧 BACKEND STRUCTURE (Lovable Cloud)
+==============================================
+
+📊 DATABASE
+----------
+Table: job_postings
+Location: Can be viewed in Lovable Cloud → Database
+Schema defined in: src/integrations/supabase/types.ts (auto-generated, DO NOT EDIT)
+
+Columns:
+- id (uuid, primary key)
+- job_title (text)
+- career_level (text)
+- location (text)
+- department (text)
+- key_skills (text array)
+- natural_posting (text) - The AI-generated posting
+- structured_data (jsonb) - Parsed structured data
+- created_at (timestamp)
+- updated_at (timestamp)
+
+RLS Policies:
+- Public read access (SELECT)
+- Authenticated insert (INSERT)
+
+⚡ EDGE FUNCTIONS (supabase/functions/)
+--------------------------------------
+
+1. generate-job-posting
+   Location: supabase/functions/generate-job-posting/index.ts
+   
+   Purpose: Calls external fine-tuned LLM to generate job posting
+   
+   Input:
+   - jobTitle, careerLevel, location, department, keySkills
+   
+   Process:
+   - Formats input as text: "Job Title: X\nCareer Level: Y\n..."
+   - Makes POST request to: https://farahalmashad75--job-posting-generator-llama-fastapi-app.modal.run
+   - Returns: { natural_posting, structured_data_string }
+   
+   External API Format:
+   {
+     "user_input": "Job Title: X\nCareer Level: Y\nLocation: Z\nDepartment: W"
+   }
+
+2. approve-posting
+   Location: supabase/functions/approve-posting/index.ts
+   
+   Purpose: Saves approved posting to database and returns similar employees
+   
+   Input:
+   - naturalPosting (the AI-generated text)
+   - structuredData (JSON string)
+   - originalInput (form data)
+   
+   Process:
+   - Parses structured data JSON
+   - Inserts into job_postings table
+   - Returns mock similar employees (YOU NEED TO INTEGRATE QDRANT HERE)
+   
+   Current Mock Data:
+   - Returns 1 mock employee: Sarah Ahmed
+   - similarity_score: 0.89
+   - promotion_probability: 0.82
+   
+   🔴 TODO: Replace mock data with:
+   - Qdrant query for top 10 similar employees (cosine similarity)
+   - ML model prediction for promotion probability
+
+==============================================
+🔗 API INTEGRATIONS
+==============================================
+
+CURRENT INTEGRATIONS:
+--------------------
+
+1. Fine-tuned LLM API
+   Endpoint: https://farahalmashad75--job-posting-generator-llama-fastapi-app.modal.run
+   Method: POST
+   Called from: supabase/functions/generate-job-posting/index.ts
+   Input Format: { "user_input": "Job Title: X\n..." }
+   Output: { "natural_posting": "...", "structured_data_string": "{...}" }
+
+TODO INTEGRATIONS:
+-----------------
+
+1. Qdrant Vector Database (Job Postings)
+   Purpose: Store structured job posting vectors
+   Integration Point: supabase/functions/approve-posting/index.ts
+   When: After posting approval, parse and store in Qdrant
+
+2. Qdrant Vector Database (Employees)
+   Purpose: Query similar employees using cosine similarity
+   Integration Point: supabase/functions/approve-posting/index.ts
+   Query: Get top 10 employees similar to approved job posting
+
+3. Promotion Prediction ML Model
+   Purpose: Predict promotion probability for matched employees
+   Integration Point: supabase/functions/approve-posting/index.ts
+   Process: Run prediction on top 10 similar employees
+
+==============================================
+🔄 DATA FLOW
+==============================================
+
+1. CREATE POSTING FLOW:
+   CreatePosting.tsx (form submit)
+   → generate-job-posting edge function
+   → External LLM API
+   → Returns: natural_posting + structured_data
+   → Navigate to ReviewPosting.tsx
+
+2. REVIEW & APPROVE FLOW:
+   ReviewPosting.tsx (approve button)
+   → approve-posting edge function
+   → Save to job_postings table
+   → [TODO: Store in Qdrant job postings DB]
+   → [TODO: Query Qdrant employees DB for similar employees]
+   → [TODO: Run promotion prediction model]
+   → Returns: posting + similarEmployees
+   → Display recommendations on same page
+
+3. VIEW POSTINGS FLOW:
+   Postings.tsx
+   → Direct Supabase query: supabase.from('job_postings').select('*')
+   → Display all approved postings
+
+==============================================
+🛠️ KEY FILES TO EDIT
+==============================================
+
+FOR ADDING QDRANT INTEGRATION:
+- supabase/functions/approve-posting/index.ts
+  * Add Qdrant client initialization
+  * Replace mock similarEmployees with real Qdrant query
+  * Add promotion prediction model call
+
+FOR UI CHANGES:
+- src/pages/ReviewPosting.tsx - Approval page UI
+- src/pages/CreatePosting.tsx - Input form UI
+- src/pages/Postings.tsx - Listings page UI
+- src/index.css - Global design tokens
+- tailwind.config.ts - Tailwind theme customization
+
+FOR DATABASE SCHEMA CHANGES:
+- Use Lovable Cloud → Database → Migrations
+- DO NOT edit src/integrations/supabase/types.ts (auto-generated)
+
+FOR EXTERNAL API CHANGES:
+- supabase/functions/generate-job-posting/index.ts - Change LLM endpoint/format
+
+==============================================
+📦 DEPENDENCIES
+==============================================
+
+Key Packages:
+- react-router-dom - Routing
+- @supabase/supabase-js - Backend client
+- react-markdown - Markdown rendering in ReviewPosting
+- lucide-react - Icons
+- sonner - Toast notifications
+- @tanstack/react-query - Data fetching
+- tailwindcss - Styling
+- shadcn/ui - UI components
+
+==============================================
+🚀 DEPLOYMENT
+==============================================
+
+Frontend:
+- Auto-deploys when you click "Update" in Lovable publish dialog
+- Changes to UI require manual update
+
+Backend (Edge Functions):
+- Auto-deploys immediately when code is saved
+- No manual deployment needed
+
+Database Migrations:
+- Run through Lovable Cloud interface
+- Applied immediately when approved
+
+==============================================
+📝 NOTES
+==============================================
+
+- All colors use HSL format and CSS variables from index.css
+- Never edit auto-generated files in src/integrations/supabase/
+- Edge functions use Deno runtime, not Node.js
+- RLS policies ensure data security - always consider permissions
+- Mock data in approve-posting needs to be replaced with real Qdrant + ML integration
+
+==============================================
