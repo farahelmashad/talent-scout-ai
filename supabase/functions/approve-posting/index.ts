@@ -210,21 +210,17 @@ function processDepartments(rawCategories: string): string[] {
 
 async function getEmbedding(text: string): Promise<number[]> {
   console.log('🔄 Calling HuggingFace embedding API...');
+  
+  // Use the feature-extraction pipeline endpoint for proper embeddings
   const response = await fetch(
-    `https://router.huggingface.co/hf-inference/models/${EMBEDDING_MODEL}`,
+    `https://router.huggingface.co/hf-inference/pipeline/feature-extraction/${EMBEDDING_MODEL}`,
     {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${HF_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        inputs: {
-          source_sentence: text,
-          sentences: [text]
-        },
-        options: { wait_for_model: true }
-      }),
+      body: JSON.stringify(text), // Send text directly as string
     }
   );
 
@@ -235,18 +231,57 @@ async function getEmbedding(text: string): Promise<number[]> {
   }
 
   const result = await response.json();
-  console.log('✅ HuggingFace response type:', typeof result, Array.isArray(result));
+  console.log('✅ HuggingFace response shape:', Array.isArray(result) ? result.length : typeof result);
   
-  // The sentence-transformers model returns similarity scores when using source_sentence format
-  // Let's use a different approach - call the pipeline directly for feature extraction
-  // For now, return the result as-is if it's an array
-  if (Array.isArray(result) && Array.isArray(result[0])) {
-    return result[0];
+  // The result is typically a 2D array [tokens][embedding_dim] or directly [embedding_dim]
+  // For sentence-transformers, we need to mean pool the token embeddings
+  if (Array.isArray(result) && Array.isArray(result[0]) && Array.isArray(result[0][0])) {
+    // Shape: [1][tokens][384] - mean pool across tokens
+    const tokenEmbeddings = result[0];
+    const embeddingDim = tokenEmbeddings[0].length;
+    const meanEmbedding = new Array(embeddingDim).fill(0);
+    
+    for (const tokenEmb of tokenEmbeddings) {
+      for (let i = 0; i < embeddingDim; i++) {
+        meanEmbedding[i] += tokenEmb[i];
+      }
+    }
+    
+    for (let i = 0; i < embeddingDim; i++) {
+      meanEmbedding[i] /= tokenEmbeddings.length;
+    }
+    
+    console.log('✅ Mean pooled embedding dimension:', meanEmbedding.length);
+    return meanEmbedding;
   }
-  if (Array.isArray(result)) {
+  
+  if (Array.isArray(result) && Array.isArray(result[0]) && typeof result[0][0] === 'number') {
+    // Shape: [tokens][384] - mean pool across tokens
+    const tokenEmbeddings = result;
+    const embeddingDim = tokenEmbeddings[0].length;
+    const meanEmbedding = new Array(embeddingDim).fill(0);
+    
+    for (const tokenEmb of tokenEmbeddings) {
+      for (let i = 0; i < embeddingDim; i++) {
+        meanEmbedding[i] += tokenEmb[i];
+      }
+    }
+    
+    for (let i = 0; i < embeddingDim; i++) {
+      meanEmbedding[i] /= tokenEmbeddings.length;
+    }
+    
+    console.log('✅ Mean pooled embedding dimension:', meanEmbedding.length);
+    return meanEmbedding;
+  }
+  
+  if (Array.isArray(result) && typeof result[0] === 'number') {
+    // Already a 1D embedding array
+    console.log('✅ Direct embedding dimension:', result.length);
     return result;
   }
   
+  console.error('Unexpected response structure:', JSON.stringify(result).slice(0, 200));
   throw new Error('Unexpected embedding response format');
 }
 
