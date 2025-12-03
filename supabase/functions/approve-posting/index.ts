@@ -14,7 +14,7 @@ const EMPLOYEES_COLLECTION = 'employees';
 
 // Hugging Face API for embeddings
 const HF_API_KEY = Deno.env.get('HUGGING_FACE_ACCESS_TOKEN')!;
-const EMBEDDING_MODEL = 'BAAI/bge-small-en-v1.5';
+const EMBEDDING_MODEL = 'sentence-transformers/all-MiniLM-L6-v2';
 
 // Promotion model API endpoint
 const PROMOTION_MODEL_URL = Deno.env.get('PROMOTION_MODEL_URL') || '';
