@@ -14,7 +14,6 @@ const EMPLOYEES_COLLECTION = 'employees';
 
 // Hugging Face API for embeddings
 const HF_API_KEY = Deno.env.get('HUGGING_FACE_ACCESS_TOKEN')!;
-// Using the exact model you mentioned - this works perfectly with the API
 const EMBEDDING_MODEL = 'sentence-transformers/all-MiniLM-L6-v2';
 
 // Promotion model API endpoint
@@ -206,25 +205,25 @@ function processDepartments(rawCategories: string): string[] {
 }
 
 async function getEmbedding(text: string): Promise<number[]> {
-  console.log('🔄 Calling HuggingFace Serverless Inference API...');
+  console.log('🔄 Calling HuggingFace API for embeddings...');
   
-  // Using the correct endpoint format for feature extraction
-  const response = await fetch(
-    `https://api-inference.huggingface.co/pipeline/feature-extraction/${EMBEDDING_MODEL}`,
-    {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${HF_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ 
-        inputs: text,
-        options: {
-          wait_for_model: true
-        }
-      }),
-    }
-  );
+  // Use the direct model endpoint (NOT the router endpoint)
+  const API_URL = `https://api-inference.huggingface.co/models/${EMBEDDING_MODEL}`;
+  
+  const response = await fetch(API_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${HF_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ 
+      inputs: text,
+      options: {
+        wait_for_model: true,
+        use_cache: false
+      }
+    }),
+  });
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -234,8 +233,8 @@ async function getEmbedding(text: string): Promise<number[]> {
 
   const result = await response.json();
   
-  // The sentence-transformers/all-MiniLM-L6-v2 model returns embeddings directly
-  // It outputs 384-dimensional embeddings
+  // Handle the response format from sentence-transformers/all-MiniLM-L6-v2
+  // This model returns 384-dimensional embeddings
   let embedding: number[];
   
   if (Array.isArray(result)) {
@@ -246,7 +245,7 @@ async function getEmbedding(text: string): Promise<number[]> {
         console.log('✅ Got batch format embedding');
       } else if (Array.isArray(result[0][0])) {
         // Format: [[[token1], [token2], ...]] - token embeddings
-        // Need mean pooling for sentence-level embedding
+        // Apply mean pooling for sentence-level embedding
         console.log('⚠️ Got token embeddings, applying mean pooling...');
         embedding = meanPoolTokens(result[0]);
       } else {
