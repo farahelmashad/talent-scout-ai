@@ -211,7 +211,7 @@ function processDepartments(rawCategories: string): string[] {
 async function getEmbedding(text: string): Promise<number[]> {
   console.log('🔄 Calling HuggingFace embedding API...');
   
-  // Use the models endpoint with inputs as text
+  // Use the models endpoint with inputs as array
   const response = await fetch(
     `https://router.huggingface.co/hf-inference/models/${EMBEDDING_MODEL}`,
     {
@@ -220,7 +220,7 @@ async function getEmbedding(text: string): Promise<number[]> {
         'Authorization': `Bearer ${HF_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ sentences: [text] }),
+      body: JSON.stringify({ inputs: [text] }),
     }
   );
 
