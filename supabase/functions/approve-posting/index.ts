@@ -6,9 +6,24 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Qdrant configuration
-const QDRANT_URL = Deno.env.get('QDRANT_URL')!;
-const QDRANT_API_KEY = Deno.env.get('QDRANT_API_KEY')!;
+// ============================================================================
+// TEMPORARY: Hardcoded values for testing (REMOVE BEFORE PRODUCTION!)
+// ============================================================================
+// Uncomment and fill in these values to test locally
+// After testing, remove these and use environment variables in Supabase Secrets
+
+// Option 1: Hardcode directly here (for quick testing)
+const HARDCODED_QDRANT_URL = ''; // e.g., 'https://your-qdrant-url.com'
+const HARDCODED_QDRANT_API_KEY = ''; // e.g., 'your-qdrant-api-key'
+const HARDCODED_OPENAI_API_KEY = ''; // e.g., 'sk-proj-...'
+const HARDCODED_COHERE_API_KEY = ''; // e.g., 'your-cohere-key'
+const HARDCODED_HUGGINGFACE_API_KEY = ''; // e.g., 'hf_...'
+
+// ============================================================================
+// Configuration (uses hardcoded values if provided, otherwise environment variables)
+// ============================================================================
+const QDRANT_URL = (HARDCODED_QDRANT_URL || Deno.env.get('QDRANT_URL'))!;
+const QDRANT_API_KEY = (HARDCODED_QDRANT_API_KEY || Deno.env.get('QDRANT_API_KEY'))!;
 const JOB_POSTINGS_COLLECTION = 'job_postings_cluster';
 const EMPLOYEES_COLLECTION = 'employees';
 
@@ -268,10 +283,10 @@ async function getEmbedding(text: string, targetDimensions: number): Promise<num
   console.log(`🔄 Generating ${targetDimensions}D embedding...`);
   console.log(`📝 Text length: ${text.length} characters`);
 
-  // Check which API keys are available
-  const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-  const COHERE_API_KEY = Deno.env.get('COHERE_API_KEY');
-  const HUGGINGFACE_API_KEY = Deno.env.get('HUGGINGFACE_API_KEY');
+  // Check which API keys are available (use hardcoded if provided, otherwise env vars)
+  const OPENAI_API_KEY = (HARDCODED_OPENAI_API_KEY || Deno.env.get('OPENAI_API_KEY'));
+  const COHERE_API_KEY = (HARDCODED_COHERE_API_KEY || Deno.env.get('COHERE_API_KEY'));
+  const HUGGINGFACE_API_KEY = (HARDCODED_HUGGINGFACE_API_KEY || Deno.env.get('HUGGINGFACE_API_KEY'));
 
   console.log('Available embedding APIs:', {
     openai: OPENAI_API_KEY ? '✅ Set' : '❌ Not set',

@@ -56,24 +56,15 @@ const ReviewPosting = () => {
         console.error("❌ Supabase function error:", error);
         console.error("Error details:", JSON.stringify(error, null, 2));
 
-        // Try to extract error message from the error object
-        let errorMessage = "Failed to approve posting";
-        if (error.message) {
-          errorMessage = error.message;
-        } else if (error.context?.body) {
-          try {
-            const errorBody = JSON.parse(error.context.body);
-            errorMessage = errorBody.error || errorMessage;
-          } catch (e) {
-            // Ignore parse errors
-          }
-        }
-
+        // The Supabase client doesn't expose the response body in errors
+        // We need to check Supabase logs for the actual error message
+        const errorMessage = "Edge Function returned an error. Check Supabase logs for details.";
         toast.error(errorMessage);
+        console.error("💡 TIP: Go to Supabase Dashboard → Edge Functions → approve-posting → Logs to see the actual error");
         throw error;
       }
 
-      // Check if response contains an error
+      // Check if response contains an error (even with 200 status)
       if (data?.error) {
         console.error("❌ Function returned error:", data.error);
         console.error("Error details:", data.details);
@@ -95,7 +86,17 @@ const ReviewPosting = () => {
       console.error("❌ Error approving posting:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error("Full error object:", error);
-      toast.error(`Failed to approve posting: ${errorMessage}`);
+
+      // More helpful error message
+      if (errorMessage.includes("non-2xx")) {
+        toast.error("Server error occurred. Please check Supabase logs for details.");
+        console.error("💡 To see the actual error:");
+        console.error("   1. Go to Supabase Dashboard");
+        console.error("   2. Edge Functions → approve-posting → Logs");
+        console.error("   3. Look for messages with ❌");
+      } else {
+        toast.error(`Failed to approve posting: ${errorMessage}`);
+      }
     } finally {
       setIsApproving(false);
     }
