@@ -87,6 +87,8 @@ const Postings = () => {
               <Card key={posting.id} className="shadow-lg hover:shadow-xl transition-shadow">
                 <CardHeader>
                   <CardTitle className="text-xl">{posting.job_title}</CardTitle>
+                  <p className="text-xs text-muted-foreground">Job ID: {posting.id}</p>
+
                   <Badge variant="secondary" className="w-fit mt-2">
                     {posting.career_level}
                   </Badge>
