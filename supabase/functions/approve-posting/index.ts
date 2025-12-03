@@ -210,7 +210,7 @@ function processDepartments(rawCategories: string): string[] {
 
 async function getEmbedding(text: string): Promise<number[]> {
   const response = await fetch(
-    `https://api-inference.huggingface.co/pipeline/feature-extraction/${EMBEDDING_MODEL}`,
+    `https://router.huggingface.co/hf-inference/pipeline/feature-extraction/${EMBEDDING_MODEL}`,
     {
       method: 'POST',
       headers: {
