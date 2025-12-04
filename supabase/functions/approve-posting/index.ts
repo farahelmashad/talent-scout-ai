@@ -13,11 +13,11 @@ const corsHeaders = {
 // After testing, remove these and use environment variables in Supabase Secrets
 
 // Option 1: Hardcode directly here (for quick testing)
-const HARDCODED_QDRANT_URL = ''; // e.g., 'https://your-qdrant-url.com'
-const HARDCODED_QDRANT_API_KEY = ''; // e.g., 'your-qdrant-api-key'
+const HARDCODED_QDRANT_URL = 'https://f04ab44d-7efd-4966-8ba7-1e5334332422.eu-central-1-0.aws.cloud.qdrant.io';
+const HARDCODED_QDRANT_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIn0.TKp2mJG6GOdU-XaaknAlcC1iDjiKdugLvhDD1C1K9Xk';
 const HARDCODED_OPENAI_API_KEY = ''; // e.g., 'sk-proj-...'
 const HARDCODED_COHERE_API_KEY = ''; // e.g., 'your-cohere-key'
-const HARDCODED_HUGGINGFACE_API_KEY = ''; // e.g., 'hf_...'
+const HARDCODED_HUGGINGFACE_API_KEY = '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'; // HuggingFace API key
 
 // ============================================================================
 // Configuration (uses hardcoded values if provided, otherwise environment variables)
@@ -37,9 +37,93 @@ serve(async (req) => {
 
   try {
     console.log('🚀 Starting approve-posting function...');
+    console.log('Request method:', req.method);
+    console.log('Request URL:', req.url);
 
-    const { naturalPosting, structuredData, originalInput } = await req.json();
+    // Handle GET requests (health check or info)
+    if (req.method === 'GET') {
+      return new Response(JSON.stringify({
+        message: 'approve-posting function is running',
+        method: 'GET',
+        expected_method: 'POST',
+        hint: 'This function expects a POST request with JSON body containing: naturalPosting, structuredData, and originalInput'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Only POST requests should proceed
+    if (req.method !== 'POST') {
+      return new Response(JSON.stringify({
+        error: 'Method not allowed',
+        received_method: req.method,
+        expected_method: 'POST'
+      }), {
+        status: 405,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Validate configuration at startup
+    console.log('🔍 Checking configuration...');
+    const hasQdrantUrl = !!QDRANT_URL;
+    const hasQdrantKey = !!QDRANT_API_KEY;
+    const hasHfKey = !!(HARDCODED_HUGGINGFACE_API_KEY || Deno.env.get('HUGGINGFACE_API_KEY'));
+
+    console.log('QDRANT_URL:', hasQdrantUrl ? '✅ Set' : '❌ Missing');
+    console.log('QDRANT_API_KEY:', hasQdrantKey ? '✅ Set' : '❌ Missing');
+    console.log('HUGGINGFACE_API_KEY:', hasHfKey ? '✅ Set' : '❌ Missing');
+
+    if (!hasQdrantUrl || !hasQdrantKey) {
+      const errorMsg = 'QDRANT_URL or QDRANT_API_KEY is missing. Please set them in the code or Supabase Secrets.';
+      console.error('❌ Configuration error:', errorMsg);
+      return new Response(JSON.stringify({
+        error: errorMsg,
+        details: {
+          hasQdrantUrl,
+          hasQdrantKey,
+          hasHfKey
+        }
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Parse request body (only for POST requests)
+    let requestBody;
+    try {
+      requestBody = await req.json();
+    } catch (error) {
+      console.error('❌ Failed to parse request body:', error);
+      return new Response(JSON.stringify({
+        error: 'Invalid JSON in request body',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     console.log('📥 Received request data');
+    console.log('Request body keys:', Object.keys(requestBody));
+
+    const { naturalPosting, structuredData, originalInput } = requestBody;
+
+    if (!naturalPosting || !structuredData || !originalInput) {
+      const errorMsg = 'Missing required data: naturalPosting, structuredData, or originalInput';
+      console.error('❌ Validation error:', errorMsg);
+      return new Response(JSON.stringify({
+        error: errorMsg,
+        received: {
+          hasNaturalPosting: !!naturalPosting,
+          hasStructuredData: !!structuredData,
+          hasOriginalInput: !!originalInput
+        }
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -401,8 +485,8 @@ async function getEmbedding(text: string, targetDimensions: number): Promise<num
     try {
       console.log('🔄 Attempting HuggingFace embedding...');
 
-      // Use a popular embedding model (sentence-transformers)
-      const model = 'sentence-transformers/all-MiniLM-L6-v2'; // 384 dimensions
+      // Use Supabase/gte-small model (384 dimensions) - same as your Python code
+      const model = 'Supabase/gte-small'; // 384 dimensions - matches your working Python code
 
       const response = await fetch(
         `https://api-inference.huggingface.co/pipeline/feature-extraction/${model}`,
