@@ -7,7 +7,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
-      <header className="bg-primary py-8 px-8 shadow-lg">
+      <header className="bg-primary py-8 px-8 shadow-lg mt-16">
         <div className="max-w-7xl mx-auto text-center">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-primary-foreground rounded-2xl mb-6">
             <Sparkles className="h-10 w-10 text-primary" />
@@ -31,7 +31,7 @@ const Index = () => {
             <p className="text-muted-foreground mb-6">
               Generate professional job postings using AI. Simply provide basic details and let our fine-tuned model create compelling postings.
             </p>
-            <Button 
+            <Button
               onClick={() => navigate("/create-posting")}
               className="w-full bg-secondary hover:bg-secondary-hover"
               size="lg"
@@ -49,7 +49,7 @@ const Index = () => {
             <p className="text-muted-foreground mb-6">
               Manage your active job postings and track applications. View detailed analytics and employee recommendations.
             </p>
-            <Button 
+            <Button
               onClick={() => navigate("/postings")}
               variant="outline"
               className="w-full"

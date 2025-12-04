@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 
 const CreatePosting = () => {
   const navigate = useNavigate();
@@ -32,28 +32,25 @@ const CreatePosting = () => {
 
     setIsGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-job-posting", {
-        body: { 
-          jobTitle: formData.jobTitle,
-          careerLevel: formData.careerLevel,
-          location: formData.location,
-          department: formData.department,
-          keySkills: formData.keySkills,
-        },
+      const data = await api.generateJobPosting({
+        jobTitle: formData.jobTitle,
+        careerLevel: formData.careerLevel,
+        location: formData.location,
+        department: formData.department,
+        keySkills: formData.keySkills,
       });
 
-      if (error) throw error;
-
       // Navigate to review page with the generated data
-      navigate("/review-posting", { 
-        state: { 
+      navigate("/review-posting", {
+        state: {
           generatedPosting: data,
-          originalInput: formData 
-        } 
+          originalInput: formData
+        }
       });
     } catch (error) {
       console.error("Error generating posting:", error);
-      toast.error("Failed to generate job posting. Please try again.");
+      const errorMessage = error instanceof Error ? error.message : "Failed to generate job posting";
+      toast.error(errorMessage);
     } finally {
       setIsGenerating(false);
     }
@@ -61,7 +58,7 @@ const CreatePosting = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="bg-primary py-6 px-8 shadow-md">
+      <header className="bg-primary py-6 px-8 shadow-md mt-16">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-3xl font-bold text-primary-foreground">AI Job Posting Generator</h1>
           <p className="text-primary-foreground/80 mt-2">Create intelligent job postings with AI assistance</p>
@@ -148,7 +145,7 @@ const CreatePosting = () => {
                   </>
                 )}
               </Button>
-              
+
               <Button
                 variant="outline"
                 onClick={() => navigate("/postings")}

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Check, X, Loader2, Mail, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import ReactMarkdown from "react-markdown";
 
 interface Employee {
@@ -44,38 +44,14 @@ const ReviewPosting = () => {
   const handleApprove = async () => {
     setIsApproving(true);
     try {
-      const { data, error } = await supabase.functions.invoke("approve-posting", {
-        body: {
-          naturalPosting: generatedPosting.natural_posting,
-          structuredData: generatedPosting.structured_data_string,
-          originalInput,
-        },
+      const data = await api.approvePosting({
+        naturalPosting: generatedPosting.natural_posting,
+        structuredData: generatedPosting.structured_data_string,
+        originalInput,
       });
 
-      if (error) {
-        console.error("❌ Supabase function error:", error);
-        console.error("Error details:", JSON.stringify(error, null, 2));
-
-        // The Supabase client doesn't expose the response body in errors
-        // We need to check Supabase logs for the actual error message
-        const errorMessage = "Edge Function returned an error. Check Supabase logs for details.";
-        toast.error(errorMessage);
-        console.error("💡 TIP: Go to Supabase Dashboard → Edge Functions → approve-posting → Logs to see the actual error");
-        throw error;
-      }
-
-      // Check if response contains an error (even with 200 status)
-      if (data?.error) {
-        console.error("❌ Function returned error:", data.error);
-        console.error("Error details:", data.details);
-        console.error("Error stack:", data.stack);
-        const errorMsg = data.error || "Unknown error occurred";
-        toast.error(`Error: ${errorMsg}`);
-        throw new Error(errorMsg);
-      }
-
       // Set similar employees if returned
-      if (data?.similarEmployees) {
+      if (data?.similarEmployees && data.similarEmployees.length > 0) {
         setSimilarEmployees(data.similarEmployees);
         toast.success("Job posting approved and saved!");
       } else {
@@ -85,18 +61,7 @@ const ReviewPosting = () => {
     } catch (error) {
       console.error("❌ Error approving posting:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error("Full error object:", error);
-
-      // More helpful error message
-      if (errorMessage.includes("non-2xx")) {
-        toast.error("Server error occurred. Please check Supabase logs for details.");
-        console.error("💡 To see the actual error:");
-        console.error("   1. Go to Supabase Dashboard");
-        console.error("   2. Edge Functions → approve-posting → Logs");
-        console.error("   3. Look for messages with ❌");
-      } else {
-        toast.error(`Failed to approve posting: ${errorMessage}`);
-      }
+      toast.error(`Failed to approve posting: ${errorMessage}`);
     } finally {
       setIsApproving(false);
     }
@@ -113,7 +78,7 @@ const ReviewPosting = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="bg-primary py-6 px-8 shadow-md">
+      <header className="bg-primary py-6 px-8 shadow-md mt-16">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-3xl font-bold text-primary-foreground">Review Job Posting</h1>
           <p className="text-primary-foreground/80 mt-2">Review and approve the AI-generated posting</p>
@@ -130,15 +95,22 @@ const ReviewPosting = () => {
             <div className="prose prose-slate max-w-none dark:prose-invert">
               <ReactMarkdown
                 components={{
-                  h1: ({ children }) => <h1 className="text-3xl font-bold mb-4 text-foreground">{children}</h1>,
-                  h2: ({ children }) => <h2 className="text-2xl font-semibold mb-3 mt-6 text-foreground">{children}</h2>,
-                  h3: ({ children }) => <h3 className="text-xl font-semibold mb-2 mt-4 text-foreground">{children}</h3>,
-                  p: ({ children }) => <p className="mb-4 text-foreground leading-relaxed">{children}</p>,
-                  ul: ({ children }) => <ul className="list-disc ml-6 mb-4 space-y-2 text-foreground">{children}</ul>,
-                  ol: ({ children }) => <ol className="list-decimal ml-6 mb-4 space-y-2 text-foreground">{children}</ol>,
-                  li: ({ children }) => <li className="text-foreground">{children}</li>,
-                  strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+                  h1: ({ children }) => <h1 className="text-5xl font-extrabold mb-8 mt-10 text-foreground border-b-4 border-primary/30 pb-4 tracking-tight">{children}</h1>,
+                  h2: ({ children }) => <h2 className="text-4xl font-bold mb-6 mt-10 text-foreground border-b-2 border-primary/20 pb-3">{children}</h2>,
+                  h3: ({ children }) => <h3 className="text-3xl font-bold mb-5 mt-8 text-foreground">{children}</h3>,
+                  h4: ({ children }) => <h4 className="text-2xl font-semibold mb-4 mt-6 text-foreground">{children}</h4>,
+                  h5: ({ children }) => <h5 className="text-xl font-semibold mb-3 mt-5 text-foreground">{children}</h5>,
+                  h6: ({ children }) => <h6 className="text-lg font-semibold mb-2 mt-4 text-foreground">{children}</h6>,
+                  p: ({ children }) => <p className="mb-6 text-foreground leading-8 text-lg">{children}</p>,
+                  ul: ({ children }) => <ul className="list-disc ml-10 mb-8 space-y-4 text-foreground marker:text-primary text-lg block">{children}</ul>,
+                  ol: ({ children }) => <ol className="list-decimal ml-10 mb-8 space-y-4 text-foreground marker:text-primary text-lg block">{children}</ol>,
+                  li: ({ children }) => <li className="text-foreground leading-8 pl-3 block mb-4 whitespace-normal break-words">{children}</li>,
+                  strong: ({ children }) => <strong className="font-bold text-foreground text-xl">{children}</strong>,
                   em: ({ children }) => <em className="italic text-foreground">{children}</em>,
+                  blockquote: ({ children }) => <blockquote className="border-l-4 border-primary/40 pl-6 my-8 italic text-foreground/90 text-lg bg-muted/50 py-4 rounded-r-lg">{children}</blockquote>,
+                  code: ({ children }) => <code className="bg-muted px-3 py-1.5 rounded-md text-base font-mono text-foreground border border-border">{children}</code>,
+                  pre: ({ children }) => <pre className="bg-muted p-6 rounded-lg mb-8 overflow-x-auto border border-border shadow-sm">{children}</pre>,
+                  hr: () => <hr className="my-10 border-t-2 border-primary/20" />,
                 }}
               >
                 {generatedPosting.natural_posting}

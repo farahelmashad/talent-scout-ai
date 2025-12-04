@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Briefcase, MapPin, Building2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { api } from "@/lib/api";
 
 interface JobPosting {
   id: string;
@@ -29,13 +29,8 @@ const Postings = () => {
 
   const fetchPostings = async () => {
     try {
-      const { data, error } = await supabase
-        .from("job_postings")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setPostings(data || []);
+      const response = await api.getJobPostings();
+      setPostings(response.postings || []);
     } catch (error) {
       console.error("Error fetching postings:", error);
       toast.error("Failed to load job postings");
@@ -46,7 +41,7 @@ const Postings = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="bg-primary py-6 px-8 shadow-md">
+      <header className="bg-primary py-6 px-8 shadow-md mt-16">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-primary-foreground">Job Postings</h1>
@@ -102,7 +97,7 @@ const Postings = () => {
                     <Building2 className="mr-2 h-4 w-4" />
                     {posting.department}
                   </div>
-                  
+
                   {posting.key_skills && posting.key_skills.length > 0 && (
                     <div className="pt-2">
                       <p className="text-xs text-muted-foreground mb-2">Key Skills:</p>
@@ -122,7 +117,7 @@ const Postings = () => {
                   )}
 
                   <p className="text-xs text-muted-foreground pt-2">
-                    Posted {new Date(posting.created_at).toLocaleDateString()}
+                    Posted {posting.date_created ? new Date(posting.date_created).toLocaleDateString() : 'Unknown date'}
                   </p>
                 </CardContent>
               </Card>
